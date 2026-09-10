@@ -1,0 +1,24 @@
+// Invoked by Robotomail's official local Playwright suite with disposable accounts.
+import assert from 'node:assert/strict';
+import { Robotomail } from '../dist/index.js';
+const f = JSON.parse(process.env.ROBOTOMAIL_SDK_TEST);
+assert.ok(['localhost', '127.0.0.1'].includes(new URL(f.baseUrl).hostname));
+const full = new Robotomail({ apiKey: f.apiKey, baseUrl: f.baseUrl });
+const scoped = new Robotomail({ apiKey: f.scopedKey, baseUrl: f.baseUrl });
+assert.equal((await full.getAccount()).account.id, f.userId);
+assert.equal((await full.listMailboxes()).mailboxes[0].id, f.mailboxId);
+assert.equal((await scoped.listMessages(f.mailboxId, { limit: 1, offset: 0 })).messages[0].id, f.messageId);
+assert.equal((await full.getMessage(f.mailboxId, f.messageId)).message.bodyText, f.body);
+await scoped.updateMailbox(f.mailboxId, { displayName: 'SDK integration' });
+assert.equal((await full.getMailbox(f.mailboxId)).mailbox.displayName, 'SDK integration');
+await assert.rejects(scoped.getAccount(), { status: 403 });
+await assert.rejects(scoped.getMailbox(f.foreignMailboxId), { status: 404 });
+const hook = await scoped.createWebhook({ url: 'https://example.com/sdk-fixture', mailboxId: f.mailboxId, events: ['message.received'] });
+await full.updateWebhook(hook.webhook.id, { headers: null });
+assert.equal((await full.getWebhook(hook.webhook.id)).webhook.headers, null);
+await full.deleteWebhook(hook.webhook.id);
+const sent = await full.sendMessage(f.mailboxId, { to: ['delivered@resend.dev'], subject: 'Local SDK test', bodyText: 'No external email is delivered.' });
+assert.equal(sent.message.status, 'SENT');
+assert.ok(sent.message.externalMessageId.startsWith('email-mock-'));
+assert.equal((await scoped.getMessage(f.mailboxId, sent.message.id)).message.subject, 'Local SDK test');
+console.log(JSON.stringify({ checks: 12, sentMessageId: sent.message.id }));
