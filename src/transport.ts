@@ -51,7 +51,7 @@ export class Transport {
   }
   private prepare(path: string, params?: object, streaming = false): [URL, Headers] {
     const url = new URL(this.baseUrl + path);
-    const headers = new Headers({ Accept: streaming ? "text/event-stream" : "application/json", "User-Agent": "robotomail-node/0.1.0" });
+    const headers = new Headers({ Accept: streaming ? "text/event-stream" : "application/json", "User-Agent": "robotomail-node/0.2.0" });
     if (this.apiKey) headers.set("Authorization", `Bearer ${this.apiKey}`);
     for (const [key, value] of Object.entries(params ?? {})) {
       if (value === undefined || value === null) continue;

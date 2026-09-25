@@ -11,7 +11,7 @@ Give your application a real email address. The official Robotomail SDK covers a
 The initial release is installable from the tagged GitHub repository:
 
 ```sh
-npm install github:robotomail/robotomail-node#v0.1.0
+npm install github:robotomail/robotomail-node#v0.2.0
 ```
 
 The `@robotomail/sdk` package is prepared for npm; registry publication is a separate release step. The GitHub installation above works before that step.
