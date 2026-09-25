@@ -26,17 +26,17 @@ export interface PaymentRequired {
 export interface TrialPaymentRequired {
   "error": string;
   "payment_required": boolean;
-  "code": string;
+  "code": "TRIAL_RECIPIENT_LOCKED" | "TRIAL_SEND_LIMIT" | "TRIAL_EXPIRED";
   "upgrade": UpgradeHint;
   "resetsAt"?: string;
 }
 
 export interface InboundLimitExceeded {
   "error": string;
-  "code": string;
+  "code": "INBOUND_LIMIT_EXCEEDED" | "INBOUND_TRIAL_LIMIT_EXCEEDED";
   "resource": InboundLimitExceededResource;
   "upgrade": UpgradeHint;
-  "recovery": string;
+  "recovery": "reset" | "upgrade";
   "resetAt"?: string;
 }
 
@@ -162,7 +162,7 @@ export interface Mailbox {
   "dailySendLimit": number;
   "monthlySendCount": number;
   "monthlySendLimit": number;
-  "status": string;
+  "status": "ACTIVE" | "PAUSED" | "SUSPENDED";
   "pausedByBilling": boolean;
   "stalwartProvisioned": boolean;
   "suspendedAt": string | null;
@@ -189,12 +189,13 @@ export interface CreateMailboxRequest {
 
 export interface UpdateMailboxRequest {
   "displayName"?: string;
-  "status"?: string;
+  "status"?: "ACTIVE" | "PAUSED";
 }
 
 export interface SendMessageRequest {
   "to": Array<string>;
   "cc"?: Array<string>;
+  "bcc"?: Array<string>;
   "subject": string;
   "bodyText": string;
   "bodyHtml"?: string;
@@ -206,25 +207,26 @@ export interface SendMessageRequest {
 export interface Message {
   "id": string;
   "mailboxId": string;
-  "direction": string;
+  "direction": "INBOUND" | "OUTBOUND";
   "messageId": string;
   "inReplyTo": string | null;
   "threadId": string | null;
   "fromAddress": string;
   "toAddresses": Array<string>;
   "ccAddresses": Array<string>;
+  "bccAddresses": Array<string>;
   "subject": string;
   "bodyText": string;
   "bodyHtml": string | null;
   "headers": Record<string, unknown>;
-  "status": string;
+  "status": "QUEUED" | "SENT" | "DELIVERED" | "BOUNCED" | "COMPLAINED" | "FAILED" | "RECEIVED";
   "externalMessageId": string | null;
   "hasAttachments": boolean;
   "attachmentsDropped": boolean;
   "attachmentsDroppedReason": string | null;
   "eventDispatchedAt": string | null;
   "overLimit": boolean;
-  "overLimitReason": string | null;
+  "overLimitReason": "MONTHLY" | "TRIAL" | null;
   "pendingSseEventData": unknown;
   "createdAt": string;
   "attachments"?: Array<Attachment>;
@@ -239,7 +241,7 @@ export interface InboundUsage {
   "limit": number;
   "percentage": number;
   "reset_date": string;
-  "status": string;
+  "status": "healthy" | "approaching" | "near" | "limit_reached";
 }
 
 export interface ListMetadata {
@@ -318,7 +320,7 @@ export interface Domain {
   "id": string;
   "userId": string;
   "domain": string;
-  "status": string;
+  "status": "PENDING_VERIFICATION" | "DNS_VERIFIED" | "VERIFIED" | "FAILED";
   "mxVerified": boolean;
   "spfVerified": boolean;
   "dkimVerified": boolean;
@@ -345,7 +347,7 @@ export interface TxtDnsRecord {
 }
 
 export interface DkimDnsRecord {
-  "type": string;
+  "type": "CNAME" | "TXT";
   "host": string;
   "value": string;
 }
@@ -386,9 +388,9 @@ export interface Webhook {
   "userId": string;
   "mailboxId": string | null;
   "url": string;
-  "events": Array<string>;
+  "events": Array<"message.received" | "message.sent" | "message.delivered" | "message.bounced" | "message.complaint">;
   "headers": Record<string, string> | null;
-  "status": string;
+  "status": "ACTIVE" | "PAUSED" | "FAILED";
   "failureCount": number;
   "lastTriggeredAt": string | null;
   "createdAt": string;
@@ -400,9 +402,9 @@ export interface WebhookCreated {
   "userId": string;
   "mailboxId": string | null;
   "url": string;
-  "events": Array<string>;
+  "events": Array<"message.received" | "message.sent" | "message.delivered" | "message.bounced" | "message.complaint">;
   "headers": Record<string, string> | null;
-  "status": string;
+  "status": "ACTIVE" | "PAUSED" | "FAILED";
   "failureCount": number;
   "lastTriggeredAt": string | null;
   "createdAt": string;
@@ -414,14 +416,14 @@ export type WebhookHeaders = Record<string, string>;
 export interface CreateWebhookRequest {
   "url": string;
   "mailboxId"?: string;
-  "events": Array<string>;
+  "events": Array<"message.received" | "message.sent" | "message.delivered" | "message.bounced" | "message.complaint">;
   "headers"?: WebhookHeaders;
 }
 
 export interface UpdateWebhookRequest {
   "url"?: string;
-  "events"?: Array<string>;
-  "status"?: string;
+  "events"?: Array<"message.received" | "message.sent" | "message.delivered" | "message.bounced" | "message.complaint">;
+  "status"?: "ACTIVE" | "PAUSED";
   "headers"?: WebhookHeaders | null;
 }
 
@@ -441,7 +443,7 @@ export interface WebhookDelivery {
   "id": string;
   "event": string;
   "responseStatus": number | null;
-  "status": string;
+  "status": "PENDING" | "DELIVERED" | "FAILED";
   "attempts": number;
   "nextRetryAt": string | null;
   "createdAt": string;
@@ -454,13 +456,13 @@ export interface WebhookDeliveryListResponse {
 export interface SuppressionEntry {
   "id": string;
   "email": string;
-  "reason": string;
+  "reason": "BOUNCE" | "COMPLAINT" | "MANUAL";
   "createdAt": string;
 }
 
 export interface CreateSuppressionRequest {
   "email": string;
-  "reason"?: string;
+  "reason"?: "BOUNCE" | "COMPLAINT" | "MANUAL";
 }
 
 export interface SuppressionListResponse {
@@ -472,8 +474,8 @@ export interface SuppressionResponse {
 }
 
 export interface UpgradeRequest {
-  "plan"?: string;
-  "period"?: string;
+  "plan"?: "developer" | "growth" | "scale";
+  "period"?: "monthly" | "annual";
 }
 
 export interface UpgradeCheckoutResponse {
@@ -483,7 +485,7 @@ export interface UpgradeCheckoutResponse {
 }
 
 export interface SupportRequest {
-  "category": string;
+  "category": "technical" | "billing" | "account" | "other";
   "subject": string;
   "message": string;
 }
@@ -506,11 +508,11 @@ export interface DeleteAccountRequest {
 }
 
 export interface SetPostVerifyTargetResponse {
-  "target": string;
+  "target": "/dashboard?verified=true" | "/onboarding";
 }
 
 export interface ListMessagesParams {
-  "direction"?: string;
+  "direction"?: "INBOUND" | "OUTBOUND";
   "threadId"?: string;
   "since"?: string;
   "limit"?: number;
@@ -540,7 +542,7 @@ export interface UpgradeHintApiEndpoint {
 }
 
 export interface InboundLimitExceededResource {
-  "type": string;
+  "type": "message" | "attachment";
   "id": string;
 }
 
@@ -563,7 +565,7 @@ export interface SignupResponseMailbox {
   "id": string;
   "address": string;
   "fullAddress": string;
-  "status": string;
+  "status": "ACTIVE" | "PAUSED" | "SUSPENDED";
 }
 
 export interface SignupResponseNextSteps {
